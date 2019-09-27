@@ -12,6 +12,6 @@ My change point detection
   | shiftmean1-5.py | 1 dim shift mean time series   | rupture   | 
   | shiftlinear1-5.py | 1 dim linear model shift   | rupture  |
 
-[^1]aaa
+[^1]:aaa
 ？？？need to undersatand the difference between  
 
