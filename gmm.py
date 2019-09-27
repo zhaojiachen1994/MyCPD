@@ -14,7 +14,8 @@ import torchvision
 import torch.nn as nn
 from torch.autograd import Variable
 import scipy.io as sio
-
+from sklearn.metrics.cluster import adjusted_rand_score
+from sklearn.metrics.cluster import adjusted_mutual_info_score, consensus_score
 
 def to_var(x, volatile=False):
     """
@@ -41,10 +42,12 @@ class Gmm(nn.Module):
 
         # optimizer module
         self.lr = lr
-        self. optimizer = torch.optim.Adam(gmm.parameters(), lr=self.lr)
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
 
         # training process
         self.MAX_ITER = 500
+        self.lambda_energy = 1
+        self.lambda_cov_diag = 0.001
 
     def forward(self, z):
         gamma = self.net(z)
@@ -114,7 +117,7 @@ class Gmm(nn.Module):
             sample_energy = torch.mean(sample_energy)
         return sample_energy, cov_diag
 
-    def loss_function(self, z, gamma, lambda_energy=1, lambda_cov_diag=1):
+    def loss_function(self, z, gamma):
         """
         :param z: original data
         :param gamma: produced by nn
@@ -124,55 +127,66 @@ class Gmm(nn.Module):
         """
         phi, mu, cov = self.compute_gmm_params(z, gamma)
         sample_energy, cov_diag = self.compute_energy(z, phi, mu, cov, size_average=True)
-        loss = lambda_energy * sample_energy + lambda_cov_diag * cov_diag
+        loss = self.lambda_energy * sample_energy + self.lambda_cov_diag * cov_diag
         return loss
 
-    def fit(self, X, MAX_ITER=self.MAX_ITER):
+    def fit(self, X, verbose=False):
         """
-        :param X: ndarray or Variable, or torch.tensor
+        :param X: [num_samples, num_dims], ndarray
         :param MAX_ITER:
         :return:
         """
-        for i in range(MAX_ITER):
-            gmm.train()
-            gamma = gmm(X_train)
-            optimizer.zero_grad()
-            loss = gmm.loss_function(X_train, gamma, lambda_energy=0.5, lambda_cov_diag=0.001)
-            loss.backward()
-            optimizer.step()
+        X = Variable(torch.from_numpy(X).float())
 
-MAX_ITER = 500
-gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
-optimizer = torch.optim.Adam(gmm.parameters(),lr=0.1)
+        for i in range(self.MAX_ITER):
+            self.train()
+            gamma = self.forward(X)
+            self.optimizer.zero_grad()
+            loss = self.loss_function(X, gamma)
+            loss.backward()
+            self.optimizer.step()
+            if verbose==True:
+                print("Loss is:{:.8f}".format(loss))
+
+    def predict(self, X, y_true):
+        """
+        :param X: [num_samples, num_dims], ndarray
+        :param y_true: flatten truth label vector
+        :return:
+        """
+        X = Variable(torch.from_numpy(X).float())
+        gamma_pred = gmm.forward(X)
+        _, y_pred = torch.max(gamma_pred, 1)
+        y_pred = y_pred.numpy().flatten()
+        y_true = y_true.flatten()
+        Acc = np.mean(y_pred == y_true)
+        ARI = adjusted_rand_score(y_true, y_pred)
+        AMI = adjusted_mutual_info_score(y_true, y_pred)
+        return Acc, ARI, AMI, y_pred
+
+
 
 data_train = sio.loadmat('./data/training.mat')
 data_test = sio.loadmat('./data/testing.mat')
 X_train, y_train = data_train['X'].astype(float), data_train['y']
 X_test, y_test = data_test['X'].astype(float), data_test['y']
-X_train = torch.from_numpy(X_train).float()
-X_train = Variable(X_train)
-# y_train = torch.from_numpy(y_train).float()
-# X_test = torch.from_numpy(X_test).float()
-# y_test = torch.from_numpy(y_test).float()
 
+MAX_ITER = 500
+gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
+gmm.fit(X_test)
+Acc, ARI, AMI, y_pred = gmm.predict(X_test, y_test)
+print('ACC:',Acc)
+print('ARI:',ARI)
+print('AMI:',AMI)
+y_pred = y_pred[3:20]
+y_true = y_test.flatten()[3:20]
 
-
-for i in range(MAX_ITER):
-    gmm.train()
-    gamma = gmm(X_train)
-    optimizer.zero_grad()
-    loss = gmm.loss_function(X_train, gamma, lambda_energy=0.5, lambda_cov_diag=0.001)
-    loss.backward()
-    optimizer.step()
-    print(loss)
-
-gamma_pred = gmm(X_train)
-_, y_pred = torch.max(gamma_pred,1)
-y_pred = y_pred.numpy()
 print(y_pred)
-print(y_train)
-print(np.mean(y_pred==y_train.flatten()))
-
-#
-
+print(y_true)
+Acc = np.mean(y_pred == y_true)
+ARI = adjusted_rand_score(y_true, y_pred)
+AMI = adjusted_mutual_info_score(y_true, y_pred)
+print('ACC:',Acc)
+print('ARI:',ARI)
+print('AMI:',AMI)
 
