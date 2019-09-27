@@ -27,85 +27,24 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-# def compute_gmm_params(z, gamma):
-#     """
-#     :param z: sample matrix, shape is [num_samples, num_dim]
-#     :param gamma: the soft mixture-component membership prediction, shape is [num_samples, num_components]
-#     :return: phi: priori probs of each component, dtype = torch.tensor
-#              mu: mean of each component, dtype = torch.tensor
-#              cov: covariance of each component, dtype = torch.tensor
-#     """
-#     num_samples = z.size(0)
-#     sum_gamma = torch.sum(gamma, dim=0)
-#     phi = sum_gamma/num_samples
-#
-#     mu = torch.sum(gamma.unsqueeze(-1)*z.unsqueeze(1), dim=0) / sum_gamma.unsqueeze(-1)
-#     z_minusMu = (z.unsqueeze(1) - mu.unsqueeze(0)) # shape of z_minusMu is [num_samples, num_components, num_dim]
-#     z_minusMu_outer = z_minusMu.unsqueeze(-1) * z_minusMu.unsqueeze(-2) # shape is [num_samples, num_components, num_dim, num_dim]
-#     cov = torch.sum(gamma.unsqueeze(-1).unsqueeze(-1) * z_minusMu_outer, dim = 0)\
-#           / sum_gamma.unsqueeze(-1).unsqueeze(-1)# shape of cov is [num_component, num_dim, num_dim]
-#     return phi, mu, cov
-
-# def compute_energy(z, phi, mu, cov, size_average = True):
-#     """
-#     :param z: the original data [num_samples, num_dims]
-#     :param phi: the priori probability of each component
-#     :param mu: the mean of each component
-#     :param cov: the covariance matrix of each component
-#     :param size_average:
-#     :return: sample_energy
-#              cov_diag: the penalty item of the covariance matrix
-#     """
-#     # compute the equation 6 in the original paper
-#     num_components, num_dim, _ = cov.size()
-#     z_minusMu = z.unsqueeze(1) - mu.unsqueeze(0)
-#     cov_inverse = [] # the covariance list for components
-#     det_cov = []
-#     cov_diag = 0
-#     eps = 1e-12
-#     for i in range(num_components):
-#         cov_k = cov[i]+Variable(torch.eye(num_dim) * eps)
-#         cov_inverse.append(torch.inverse(cov_k).unsqueeze(0))
-#         cov_det_k = torch.cholesky(cov_k*2*np.pi, upper=True).diag().prod().unsqueeze(0)
-#         det_cov.append(cov_det_k)
-#         cov_diag = cov_diag + torch.sum(1 / cov_k.diag())
-#
-#     cov_inverse = torch.cat(cov_inverse, dim=0) # [num_component, num_dim, num_dim]
-#     det_cov = torch.cat(det_cov) # [K]
-#     exp_term_tmp = -0.5 * torch.sum(torch.sum(z_minusMu.unsqueeze(-1) * cov_inverse.unsqueeze(0), dim=-2) * z_minusMu, dim=-1)
-#     max_val = torch.max((exp_term_tmp).clamp(min=0), dim=1, keepdim=True)[0]
-#     exp_term = torch.exp(exp_term_tmp - max_val)
-#     sample_energy = -max_val.squeeze() - torch.log(
-#         torch.sum(phi.unsqueeze(0) * exp_term / (torch.sqrt(det_cov)).unsqueeze(0), dim=1) + eps)
-#
-#     if size_average == True:
-#         sample_energy = torch.mean(sample_energy)
-#     return sample_energy, cov_diag
-
-# def loss_function(z, gamma, lambda_energy, lambda_cov_diag):
-#     """
-#     Description: use c
-#     :param z:
-#     :param gamma:
-#     :param lambda_energy:
-#     :param lambda_cov_diag:
-#     :return:
-#     """
-#     phi, mu, cov = compute_gmm_params(z, gamma)
-#     sample_energy, cov_diag = compute_energy(z, phi, mu, cov, size_average=True)
-#     loss = lambda_energy*sample_energy + lambda_cov_diag*cov_diag
-#     return loss
-
-
 class Gmm(nn.Module):
-    def __init__(self, n_gmm = 2,input_dim=2, latent_dim=2):
+    def __init__(self, n_gmm = 2,input_dim=2, latent_dim=2, lr = 0.1):
         super(Gmm, self).__init__()
+
+        # nn module
         layers = []
         # layers += [nn.Linear(input_dim, latent_dim)]
         # layers += [nn.ReLU()]
         layers += [nn.Linear(input_dim, n_gmm)]
         layers += [nn.Softmax(dim=1)]
         self.net = nn.Sequential(*layers)
+
+        # optimizer module
+        self.lr = lr
+        self. optimizer = torch.optim.Adam(gmm.parameters(), lr=self.lr)
+
+        # training process
+        self.MAX_ITER = 500
 
     def forward(self, z):
         gamma = self.net(z)
@@ -177,9 +116,8 @@ class Gmm(nn.Module):
 
     def loss_function(self, z, gamma, lambda_energy=1, lambda_cov_diag=1):
         """
-
-        :param z:
-        :param gamma:
+        :param z: original data
+        :param gamma: produced by nn
         :param lambda_energy: weight of the energy item in the loss function
         :param lambda_cov_diag: weight of the pan
         :return:
@@ -188,6 +126,20 @@ class Gmm(nn.Module):
         sample_energy, cov_diag = self.compute_energy(z, phi, mu, cov, size_average=True)
         loss = lambda_energy * sample_energy + lambda_cov_diag * cov_diag
         return loss
+
+    def fit(self, X, MAX_ITER=self.MAX_ITER):
+        """
+        :param X: ndarray or Variable, or torch.tensor
+        :param MAX_ITER:
+        :return:
+        """
+        for i in range(MAX_ITER):
+            gmm.train()
+            gamma = gmm(X_train)
+            optimizer.zero_grad()
+            loss = gmm.loss_function(X_train, gamma, lambda_energy=0.5, lambda_cov_diag=0.001)
+            loss.backward()
+            optimizer.step()
 
 MAX_ITER = 500
 gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
