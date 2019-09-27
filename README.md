@@ -11,6 +11,7 @@ My change point detection
   | shiftcorr1-5 | 2 dim shift correlation time series   | rupture   | 
   | shiftmean1-5.py | 1 dim shift mean time series   | rupture   | 
   | shiftlinear1-5.py | 1 dim linear model shift   | rupture  |
+
 *[agots]:sss
 ？？？need to undersatand the difference between  
 
