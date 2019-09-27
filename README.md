@@ -12,5 +12,5 @@ My change point detection
   |NNwithoptim.py | tensor   | tensor.backward()   | nn.Sequential() | nn.MSELoss()  |   optim.Adam() |
   |NNwithcustommodel.py | tensor   | tensor.backward()   | customized class | nn.MSELoss()  |   optim.Adam() |
   
--[ ] need to undersatand the difference between  
+/-[] need to undersatand the difference between  
 
