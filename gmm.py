@@ -4,7 +4,7 @@ File: gmm.py
 Project: MyCPD
 Author: Jiachen Zhao
 Date: 9/23/19
-Description:
+Description: Achieve the gaussian mixture model with pytorch
 """
 
 import numpy as np
