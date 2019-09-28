@@ -181,12 +181,14 @@ def cluster_evaluate(y_pred, y_true):
     evaluation = {'ACC': Acc, 'ARI': ARI, 'AMI': AMI}
     return evaluation
 
-data_train = sio.loadmat('./data/training.mat')
-data_test = sio.loadmat('./data/testing.mat')
-X_train, y_train = data_train['X'].astype(float), data_train['y']
-X_test, y_test = data_test['X'].astype(float), data_test['y']
 
-gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
-y_pred = gmm.fit_predict(X_test)
-evaluation = cluster_evaluate(y_pred = y_pred, y_true = y_test.flatten())
-print(evaluation)
+if __name__ == "__main__":
+    data_train = sio.loadmat('./data/training.mat')
+    data_test = sio.loadmat('./data/testing.mat')
+    X_train, y_train = data_train['X'].astype(float), data_train['y']
+    X_test, y_test = data_test['X'].astype(float), data_test['y']
+
+    gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
+    y_pred = gmm.fit_predict(X_test)
+    evaluation = cluster_evaluate(y_pred = y_pred, y_true = y_test.flatten())
+    print(evaluation)
