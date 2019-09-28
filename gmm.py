@@ -169,7 +169,7 @@ class Gmm(nn.Module):
             self.optimizer.step()
             if verbose == True:
                 print("Loss is:{:.8f}".format(loss))
-        gamma_pred = gmm.forward(X)
+        gamma_pred = self.forward(X)
         _, y_pred = torch.max(gamma_pred, 1)
         y_pred = y_pred.numpy().flatten()
         return y_pred
