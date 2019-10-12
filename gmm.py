@@ -14,6 +14,7 @@ from torch.autograd import Variable
 import scipy.io as sio
 from sklearn.metrics.cluster import adjusted_rand_score
 from sklearn.metrics.cluster import adjusted_mutual_info_score, consensus_score
+from sklearn.datasets import make_blobs
 
 def to_var(x, volatile=False):
     """
@@ -27,7 +28,7 @@ def to_var(x, volatile=False):
     return Variable(x, volatile=volatile)
 
 class Gmm(nn.Module):
-    def __init__(self, n_gmm = 2,input_dim=2, latent_dim=2):
+    def __init__(self, n_gmm = 2, input_dim=2, latent_dim=2):
         super(Gmm, self).__init__()
 
         # nn module
@@ -183,12 +184,24 @@ def cluster_evaluate(y_pred, y_true):
 
 
 if __name__ == "__main__":
-    data_train = sio.loadmat('./data/training.mat')
-    data_test = sio.loadmat('./data/testing.mat')
-    X_train, y_train = data_train['X'].astype(float), data_train['y']
-    X_test, y_test = data_test['X'].astype(float), data_test['y']
+    # data_train = sio.loadmat('./data/training.mat')
+    # data_test = sio.loadmat('./data/testing.mat')
+    # X_train, y_train = data_train['X'].astype(float), data_train['y']
+    # X_test, y_test = data_test['X'].astype(float), data_test['y']
+    #
+    # gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
+    # y_pred = gmm.fit_predict(X_test)
+    # evaluation = cluster_evaluate(y_pred = y_pred, y_true = y_test.flatten())
+    # print(evaluation)
 
-    gmm = Gmm(n_gmm=2, input_dim=2, latent_dim=2)
-    y_pred = gmm.fit_predict(X_test)
-    evaluation = cluster_evaluate(y_pred = y_pred, y_true = y_test.flatten())
+
+    # test on make_blobs
+    X, y = make_blobs(n_features=2, n_samples=1000, centers=3, shuffle=False,
+                      random_state=100)  # 500 positive and 500 negative
+    # plt.scatter(X[:, 0], X[:, 1], marker='o', c=y, s=25, edgecolor='k')
+    # plt.show()
+
+    model = Gmm(n_gmm=3, input_dim=2, latent_dim=2)
+    y_pred = model.fit_predict(X,verbose=True)
+    evaluation = cluster_evaluate(y_pred=y_pred, y_true=y.flatten())
     print(evaluation)
